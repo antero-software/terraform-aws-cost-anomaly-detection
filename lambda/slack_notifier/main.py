@@ -5,8 +5,6 @@ import urllib.request
 import urllib.error
 from typing import Any, Dict, List, Optional, Sequence
 
-WEBHOOK_ENV = "SLACK_WEBHOOK_URL"
-
 def _post_to_slack(webhook_url: str, payload: dict) -> None:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -194,7 +192,9 @@ def _build_payload(anomaly: Optional[Dict[str, Any]], raw_text: str) -> Dict[str
 
 
 def handler(event, context):
-    webhook_url = os.environ.get(WEBHOOK_ENV)
+    print("Event object:", json.dumps(event))
+
+    webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
     if not webhook_url:
         print("Missing SLACK_WEBHOOK_URL environment variable", file=sys.stderr)
         # Fail fast so SNS can retry
