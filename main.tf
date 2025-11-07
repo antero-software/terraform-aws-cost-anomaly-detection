@@ -49,13 +49,6 @@ resource "aws_ce_anomaly_subscription" "this" {
   }
 }
 
-# Package the Lambda that will post to Slack webhook
-data "archive_file" "slack_lambda" {
-  type        = "zip"
-  source_dir  = "${path.module}/lambda/slack_notifier"
-  output_path = "${path.module}/lambda/slack_notifier.zip"
-}
-
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
     effect = "Allow"
@@ -86,8 +79,10 @@ resource "aws_lambda_function" "slack_notifier" {
   role             = aws_iam_role.lambda[0].arn
   runtime          = "python3.12"
   handler          = "main.handler"
-  filename         = data.archive_file.slack_lambda.output_path
-  source_code_hash = data.archive_file.slack_lambda.output_base64sha256
+  # IMPORTANT: point to your manual ZIP inside the module
+  filename         = "${path.module}/lambda/cost-anomaly-detection.zip"
+  # Ensure updates are detected when you re-zip
+  source_code_hash = filebase64sha256("${path.module}/lambda/cost-anomaly-detection.zip")
 
   environment {
     variables = {
