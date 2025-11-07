@@ -79,9 +79,7 @@ resource "aws_lambda_function" "slack_notifier" {
   role             = aws_iam_role.lambda[0].arn
   runtime          = "python3.12"
   handler          = "main.handler"
-  # IMPORTANT: point to your manual ZIP inside the module
   filename         = "${path.module}/lambda/cost-anomaly-detection.zip"
-  # Ensure updates are detected when you re-zip
   source_code_hash = filebase64sha256("${path.module}/lambda/cost-anomaly-detection.zip")
 
   environment {
