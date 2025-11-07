@@ -5,21 +5,6 @@ locals {
   monitor_dimension     = var.monitor_type == "DIMENSIONAL" ? var.monitor_dimension : null
   monitor_specification = (var.monitor_type == "CUSTOM" || var.monitor_type == "COST_CATEGORY") ? var.monitor_specification : null
 
-  threshold_expression = coalesce(
-    var.threshold_expression,
-    jsonencode({
-      And = [
-        {
-          Dimensions = {
-            Key          = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
-            MatchOptions = ["GREATER_THAN_OR_EQUAL"]
-            Values       = [tostring(var.subscription_threshold)]
-          }
-        }
-      ]
-    })
-  )
-
   # Module semantic version read from VERSION file (populated by CI release)
   module_version = trimspace(file("${path.module}/VERSION"))
 }
@@ -39,10 +24,22 @@ resource "aws_ce_anomaly_monitor" "this" {
 }
 
 resource "aws_ce_anomaly_subscription" "this" {
-  name                 = local.subscription_name
-  frequency            = var.subscription_frequency
-  monitor_arn_list     = [aws_ce_anomaly_monitor.this.arn]
-  threshold_expression = local.threshold_expression
+  name             = local.subscription_name
+  frequency        = var.subscription_frequency
+  monitor_arn_list = [aws_ce_anomaly_monitor.this.arn]
+
+  # Provider expects a block for threshold_expression. We express a simple
+  # absolute USD threshold using ANOMALY_TOTAL_IMPACT_ABSOLUTE with
+  # GREATER_THAN_OR_EQUAL against var.subscription_threshold.
+  threshold_expression {
+    and {
+      dimension {
+        key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
+        match_options = ["GREATER_THAN_OR_EQUAL"]
+        values        = [tostring(var.subscription_threshold)]
+      }
+    }
+  }
 
   subscriber {
     type    = "SNS"

@@ -68,11 +68,9 @@ variable "slack_webhook_url" {
   sensitive   = true
 }
 
-variable "threshold_expression" {
-  description = "Optional JSON string for Cost Anomaly Detection threshold_expression. If null, a simple absolute USD threshold is generated from subscription_threshold."
-  type        = string
-  default     = null
-}
+// threshold_expression input removed: the module now defines a provider-native
+// threshold_expression block using subscription_threshold. If you need a
+// custom expression later, we can re-introduce this as a structured input.
 
 variable "tags" {
   description = "Tags to apply to taggable resources."

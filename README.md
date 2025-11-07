@@ -55,7 +55,7 @@ See `examples/simple` for a complete working example.
 - `subscription_name` (string, optional): Name for the CAD subscription; defaults from `name_prefix`.
 - `subscription_frequency` (string, default `IMMEDIATE`): `IMMEDIATE` | `DAILY` | `WEEKLY`.
 - `subscription_threshold` (number, default `100`): Absolute USD threshold. Note provider schema may vary; see Notes.
-- `threshold_expression` (string, optional): JSON threshold expression for newer provider schema variants. Kept optional for broader lint compatibility.
+// Removed: `threshold_expression` input. The module now uses a provider-native `threshold_expression` block built from `subscription_threshold`.
 - `sns_kms_master_key_id` (string, optional): KMS key for SNS encryption.
 - `enable_slack` (bool, default `true`): Whether to enable Slack notifications (via Lambda + webhook).
 - `slack_webhook_url` (string, optional, sensitive): Slack Incoming Webhook URL that will receive messages.
@@ -76,7 +76,7 @@ See `examples/simple` for a complete working example.
 
 ## Notes and limitations
 
-- Depending on the AWS provider version, the `aws_ce_anomaly_subscription` resource may use `threshold` or `threshold_expression`. To keep the module broadly compatible with linters, the subscription resource avoids setting them explicitly. If you need a specific threshold, extend the resource or pass a suitable JSON via `threshold_expression` and adapt the resource accordingly for your provider version.
+- The module sets a default `threshold_expression` block that triggers when the absolute anomaly impact is greater than or equal to `subscription_threshold` USD. If you need a custom expression, open an issue or PR to add a structured input.
 - Provide a valid Slack webhook URL. The module sends a concise summary (ID, time window, estimated impact, top root cause) when the payload contains structured anomaly details. Otherwise, it forwards the raw message text.
 - This module focuses on notifications. For advanced formatting or routing, customize the Lambda function.
 
