@@ -30,14 +30,13 @@ resource "aws_ce_anomaly_subscription" "this" {
 
   # Provider expects a block for threshold_expression. We express a simple
   # absolute USD threshold using ANOMALY_TOTAL_IMPACT_ABSOLUTE with
-  # GREATER_THAN_OR_EQUAL against var.subscription_threshold.
+  # GREATER_THAN_OR_EQUAL against var.subscription_threshold. Use a single
+  # operand (no AND wrapper) to satisfy API requirement.
   threshold_expression {
-    and {
-      dimension {
-        key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
-        match_options = ["GREATER_THAN_OR_EQUAL"]
-        values        = [tostring(var.subscription_threshold)]
-      }
+    dimension {
+      key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
+      match_options = ["GREATER_THAN_OR_EQUAL"]
+      values        = [tostring(var.subscription_threshold)]
     }
   }
 
