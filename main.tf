@@ -73,6 +73,24 @@ resource "aws_iam_role" "lambda" {
   tags               = var.tags
 }
 
+data "aws_iam_policy_document" "cad_sns_policy" {
+  statement {
+    sid     = "AllowCostAnomalyDetectionToPublish"
+    effect  = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["costalerts.amazonaws.com"]
+    }
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.anomaly.arn]
+  }
+}
+
+resource "aws_sns_topic_policy" "cad" {
+  arn    = aws_sns_topic.anomaly.arn
+  policy = data.aws_iam_policy_document.cad_sns_policy.json
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   count      = var.enable_slack ? 1 : 0
   role       = aws_iam_role.lambda[0].name
