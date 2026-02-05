@@ -83,3 +83,10 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "account_names" {
+  description = "Map of Account IDs to Names for display in Slack."
+  type        = map(string)
+  default     = {}
+}
+

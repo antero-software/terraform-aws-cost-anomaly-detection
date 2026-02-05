@@ -109,6 +109,7 @@ resource "aws_lambda_function" "slack_notifier" {
   environment {
     variables = {
       SLACK_WEBHOOK_URL = var.slack_webhook_url
+      ACCOUNT_NAMES     = jsonencode(var.account_names)
     }
   }
 

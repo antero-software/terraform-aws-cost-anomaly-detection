@@ -74,6 +74,29 @@ def _format_date(date_str: Optional[str]) -> Optional[str]:
     return date_str
 
 
+def _get_account_info(anomaly: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    """Return (account_id, account_name) from the anomaly root cause."""
+    root_causes = _get_any(anomaly, [["RootCauses"], ["rootCauses"]], []) or []
+    if not root_causes or not isinstance(root_causes, list):
+        return None, None
+    
+    rc = root_causes[0] or {}
+    account_id = _get_any(rc, [["LinkedAccount"], ["linkedAccount"]])
+    if not account_id:
+        return None, None
+    
+    # Try to resolve account name
+    acct_names_str = os.environ.get("ACCOUNT_NAMES", "{}")
+    try:
+        acct_names = json.loads(acct_names_str)
+    except Exception:
+        acct_names = {}
+    
+    clean_acct = str(account_id).strip()
+    name = acct_names.get(clean_acct)
+    return clean_acct, name
+
+
 def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
     impact_total = _get_any(
         anomaly,
@@ -131,8 +154,8 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
         usage = _get_any(rc, [["UsageType"], ["usageType"]])
         if service:
             rc_parts.append(f"Service: {service}")
-        if account:
-            rc_parts.append(f"Account: {account}")
+            rc_parts.append(f"Account: {acct_name} ({clean_acct})" if acct_name else f"Account: {clean_acct}")
+
         if region:
             rc_parts.append(f"Region: {region}")
         if usage:
@@ -146,10 +169,19 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
     # Title shown once in the bold header, now with Severity
     header_title = f"{emoji} AWS Cost Anomaly Detected: {label} {emoji}"
 
+    acct_id, acct_name = _get_account_info(anomaly)
+    if acct_name:
+        detail_line = f"{acct_name} ({acct_id})"
+    elif acct_id:
+        detail_line = f"Account: {acct_id}"
+    else:
+        detail_line = None
+
     blocks: List[Dict[str, Any]] = [
         {"type": "header", "text": {"type": "plain_text", "text": header_title, "emoji": True}},
         {
             "type": "section",
+            **({"text": {"type": "mrkdwn", "text": detail_line}} if detail_line else {}),
             "fields": fields,
         },
     ]
