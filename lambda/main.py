@@ -24,9 +24,18 @@ def _post_to_slack(webhook_url: str, payload: dict) -> None:
         raise
 
 
-def _severity_color(impact: Optional[float]) -> str:
-    # Always red as requested
-    return "#C62828"
+def _get_severity_details(impact: Optional[float]) -> Dict[str, str]:
+    if impact is None:
+        return {"color": "#78909C", "emoji": ":information_source:", "label": "UNKNOWN"}
+    
+    if impact > 100:
+        return {"color": "#C62828", "emoji": ":rotating_light:", "label": "HIGH"}
+    elif impact > 50:
+        # Amber/Yellow
+        return {"color": "#FFC107", "emoji": ":warning:", "label": "MEDIUM"}
+    else:
+        # Blue Grey (Low)
+        return {"color": "#78909C", "emoji": ":information_source:", "label": "LOW"}
 
 
 def _safe_get(d: Dict[str, Any], path: Sequence[str], default: Any = None) -> Any:
@@ -70,6 +79,15 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
         anomaly,
         [["Impact", "TotalImpact"], ["impact", "totalImpact"]],
     )
+    
+    # Determine severity
+    sev_details = _get_severity_details(
+        impact_total if isinstance(impact_total, (int, float)) else None
+    )
+    emoji = sev_details["emoji"]
+    label = sev_details["label"]
+
+
     impact_text = f"${impact_total:,.2f}" if isinstance(impact_total, (int, float)) else "n/a"
     impact_pct = _get_any(
         anomaly,
@@ -125,11 +143,11 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "text": "*Root cause*\n" + " | ".join(rc_parts),
             })
 
-    # Title shown once in the bold header
-    header_title = ":alert: :alert-blue: AWS Cost Anomaly Detected :alert: :alert-blue:"
+    # Title shown once in the bold header, now with Severity
+    header_title = f"{emoji} AWS Cost Anomaly Detected: {label} {emoji}"
     # Keep the section line minimal (only the anomaly id), to avoid repeating the title
     anomaly_id = _get_any(anomaly, [["AnomalyId"], ["anomalyId"]])
-    detail_line = f"{anomaly_id}" if anomaly_id else None
+    detail_line = f"*{label} Severity* | ID: {anomaly_id}" if anomaly_id else None
 
     blocks: List[Dict[str, Any]] = [
         {"type": "header", "text": {"type": "plain_text", "text": header_title, "emoji": True}},
@@ -172,12 +190,12 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
 def _build_payload(anomaly: Optional[Dict[str, Any]], raw_text: str) -> Dict[str, Any]:
     if anomaly and _get_any(anomaly, [["AnomalyId"], ["anomalyId"]]):
         impact = _get_any(anomaly, [["Impact", "TotalImpact"], ["impact", "totalImpact"]])  # may be None
-        color = _severity_color(impact if isinstance(impact, (int, float)) else None)
+        sev_details = _get_severity_details(impact if isinstance(impact, (int, float)) else None)
         return {
             # Use an attachment for the color bar; detailed content comes from Block Kit
             "attachments": [
                 {
-                    "color": color,
+                    "color": sev_details["color"],
                     "blocks": _build_blocks_for_anomaly(anomaly),
                 }
             ],
@@ -185,7 +203,7 @@ def _build_payload(anomaly: Optional[Dict[str, Any]], raw_text: str) -> Dict[str
     # Fallback payload when the message can't be parsed as an anomaly
     return {
         "blocks": [
-            {"type": "header", "text": {"type": "plain_text", "text": ":alert: :alert-blue: AWS Cost Anomaly Notification :alert: :alert-blue:", "emoji": True}},
+            {"type": "header", "text": {"type": "plain_text", "text": ":rotating_light: AWS Cost Anomaly Notification :rotating_light:", "emoji": True}},
             {"type": "section", "text": {"type": "mrkdwn", "text": f"```{raw_text}```"}},
         ],
     }
