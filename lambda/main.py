@@ -145,15 +145,11 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     # Title shown once in the bold header, now with Severity
     header_title = f"{emoji} AWS Cost Anomaly Detected: {label} {emoji}"
-    # Keep the section line minimal (only the anomaly id), to avoid repeating the title
-    anomaly_id = _get_any(anomaly, [["AnomalyId"], ["anomalyId"]])
-    detail_line = f"*{label} Severity* | ID: {anomaly_id}" if anomaly_id else None
 
     blocks: List[Dict[str, Any]] = [
         {"type": "header", "text": {"type": "plain_text", "text": header_title, "emoji": True}},
         {
             "type": "section",
-            **({"text": {"type": "mrkdwn", "text": detail_line}} if detail_line else {}),
             "fields": fields,
         },
     ]
