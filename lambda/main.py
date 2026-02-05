@@ -3,7 +3,7 @@ import os
 import sys
 import urllib.request
 import urllib.error
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 def _post_to_slack(webhook_url: str, payload: dict) -> None:
     data = json.dumps(payload).encode("utf-8")
@@ -34,8 +34,8 @@ def _get_severity_details(impact: Optional[float]) -> Dict[str, str]:
         # Amber/Yellow
         return {"color": "#FFC107", "emoji": ":warning:", "label": "MEDIUM"}
     else:
-        # Blue Grey (Low)
-        return {"color": "#78909C", "emoji": ":information_source:", "label": "LOW"}
+        # Blue (Low)
+        return {"color": "#2196F3", "emoji": ":information_source:", "label": "LOW"}
 
 
 def _safe_get(d: Dict[str, Any], path: Sequence[str], default: Any = None) -> Any:
@@ -85,16 +85,12 @@ def _get_account_info(anomaly: Dict[str, Any]) -> Tuple[Optional[str], Optional[
     if not account_id:
         return None, None
     
-    # Try to resolve account name
-    acct_names_str = os.environ.get("ACCOUNT_NAMES", "{}")
-    try:
-        acct_names = json.loads(acct_names_str)
-    except Exception:
-        acct_names = {}
+    # Try to resolve account name from payload
+    # Check for "LinkedAccountName" or "linkedAccountName" in the root cause
+    acct_name = _get_any(rc, [["LinkedAccountName"], ["linkedAccountName"]])
     
     clean_acct = str(account_id).strip()
-    name = acct_names.get(clean_acct)
-    return clean_acct, name
+    return clean_acct, acct_name
 
 
 def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -154,7 +150,6 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
         usage = _get_any(rc, [["UsageType"], ["usageType"]])
         if service:
             rc_parts.append(f"Service: {service}")
-            rc_parts.append(f"Account: {acct_name} ({clean_acct})" if acct_name else f"Account: {clean_acct}")
 
         if region:
             rc_parts.append(f"Region: {region}")
@@ -165,6 +160,14 @@ def _build_blocks_for_anomaly(anomaly: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "type": "mrkdwn",
                 "text": "*Root cause*\n" + " | ".join(rc_parts),
             })
+
+    # Anomaly ID
+    anomaly_id = _get_any(anomaly, [["AnomalyId"], ["anomalyId"]])
+    if anomaly_id:
+        fields.append({
+            "type": "mrkdwn",
+            "text": f"*Anomaly ID*\n{anomaly_id}",
+        })
 
     # Title shown once in the bold header, now with Severity
     header_title = f"{emoji} AWS Cost Anomaly Detected: {label} {emoji}"
