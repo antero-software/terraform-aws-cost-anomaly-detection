@@ -98,7 +98,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 data "archive_file" "lambda" {
   type        = "zip"
   source_file = "${path.module}/lambda/main.py"
-  output_path = "${path.module}/lambda/cost-anomaly-detection.zip"
+  output_path = "${path.root}/.terraform/tmp/cad-slack-notifier.zip"
 }
 
 resource "aws_lambda_function" "slack_notifier" {
