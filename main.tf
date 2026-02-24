@@ -5,8 +5,6 @@ locals {
   monitor_dimension     = var.monitor_type == "DIMENSIONAL" ? var.monitor_dimension : null
   monitor_specification = (var.monitor_type == "CUSTOM" || var.monitor_type == "COST_CATEGORY") ? var.monitor_specification : null
 
-  # Module semantic version read from VERSION file (populated by CI release)
-  module_version = trimspace(file("${path.module}/VERSION"))
 }
 
 resource "aws_sns_topic" "anomaly" {
@@ -97,14 +95,20 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+data "archive_file" "lambda" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/main.py"
+  output_path = "${path.module}/lambda/cost-anomaly-detection.zip"
+}
+
 resource "aws_lambda_function" "slack_notifier" {
   count            = var.enable_slack ? 1 : 0
   function_name    = "${var.name_prefix}-cad-slack-notifier"
   role             = aws_iam_role.lambda[0].arn
   runtime          = "python3.12"
   handler          = "main.handler"
-  filename         = "${path.module}/lambda/cost-anomaly-detection.zip"
-  source_code_hash = filebase64sha256("${path.module}/lambda/cost-anomaly-detection.zip")
+  filename         = data.archive_file.lambda.output_path
+  source_code_hash = data.archive_file.lambda.output_base64sha256
 
   environment {
     variables = {
