@@ -67,7 +67,7 @@ See `examples/simple` for a complete working example.
 - `anomaly_monitor_arn`: ARN of the CAD Monitor.
 - `anomaly_subscription_id`: ID of the CAD Subscription.
 - `slack_lambda_function_arn`: ARN of the Lambda function that posts to Slack (if enabled).
-- `module_version`: Semantic version of this module, read from the `VERSION` file and updated by CI releases.
+
 
 ## Prerequisites
 
@@ -96,7 +96,7 @@ terraform plan
 
 - On pushes to `master`, CI runs `terraform fmt -check` and `terraform validate`.
 - A release workflow automatically computes the next semantic version (based on conventional commits),
-  updates the `VERSION` file, tags the commit, and creates a GitHub Release. The module exposes this value via the `module_version` output.
+  tags the commit, and creates a GitHub Release.
 
 > Note: `terraform init/plan` requires internet access and valid AWS credentials.
 

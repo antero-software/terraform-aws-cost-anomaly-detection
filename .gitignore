@@ -38,3 +38,9 @@ terraform.rc
 
 # MacOS specific files
 .DS_Store
+
+# Generated Lambda zip (built by Terraform archive_file)
+*.zip
+
+# Lock file (not needed for reusable modules)
+.terraform.lock.hcl

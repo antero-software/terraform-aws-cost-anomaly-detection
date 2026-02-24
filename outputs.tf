@@ -17,8 +17,3 @@ output "slack_lambda_function_arn" {
   description = "ARN of the Lambda that posts to the Slack webhook (if enabled)."
   value       = try(aws_lambda_function.slack_notifier[0].arn, null)
 }
-
-output "module_version" {
-  description = "The semantic version of this module, read from the VERSION file."
-  value       = local.module_version
-}
